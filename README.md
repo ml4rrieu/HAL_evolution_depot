@@ -2,7 +2,7 @@
 
 ![depot par mois](hal_depot_par_mois.png)
 
-données extraite le 2020-01-02
+données extraites le 2020-01-02
 ## Dépôts cumulés par années
 
 **récupérer les données**
