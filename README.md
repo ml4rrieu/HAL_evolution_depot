@@ -2,7 +2,11 @@
 
 ![depot par mois](hal_depot_par_mois.png)
 
-données extraites le 2020-01-02
+mars 2018 : versement des thèses de Univ. Lorraine <br />
+fev. 2019 : versement des rapports HCERES <br />
+mai et juin 2020 : versement de prodinra et irstea <br />
+
+
 ## Dépôts cumulés par années
 
 **récupérer les données**
@@ -241,7 +245,7 @@ mai et juin 2020 : versement de prodinra et irstea
 <br /><br />
 **le CRAC a-t-il impacté le nombre de dépôts en texte intégral ?**
 
-Calcul de l'augmentation moyenne de dépot en plein texte par mois entre 2019 et 2020 : 
+Calcul de l'augmentation moyenne de dépots en plein texte par mois entre 2019 et 2020 : 
 
 Mois pris en compte (sont exclus les mois avec des automates) : janv, mars, avril, juillet, aout, sept, oct, nov, dec
 
@@ -250,7 +254,7 @@ augmentation moyenne de ~ 19% par mois
 aug. pour nov. 2020 : 57 % 
 
 <br /><br />
-On observe une augmententation des dépôts de plein texte entre 2019 et 2020 d'environ 19 %. Le mois de novembre 2020, avec une augmentation de 57 %, marque le maximum, mois durant lequel le CRAC était actif.
+On observe une augmententation des dépôts en plein texte entre 2019 et 2020 d'environ 19 %. Le mois de novembre 2020, avec une augmentation de 57 %, marque le maximum, mois durant lequel le CRAC était actif.
 
 **récupérer les données**
 ```python 
