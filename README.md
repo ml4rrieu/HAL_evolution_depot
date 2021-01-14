@@ -2,245 +2,13 @@
 
 ![depot par mois](hal_depot_par_mois.png)
 
-mars 2018 : versement des thèses de Univ. Lorraine <br />
-fev. 2019 : versement des rapports HCERES <br />
-mai et juin 2020 : versement de prodinra et irstea <br />
 
-
-## Dépôts cumulés par années
-
-**récupérer les données**
-```python
-import requests, json, pandas as pd
-
-def reqHal(year, month):
-	url=f"https://api.archives-ouvertes.fr/search/?&rows=0&fq=submittedDate_tdate:[1500-01-01T00:00:00Z%20TO%20{year}-{month}-01T00:00:00Z]&facet=true&facet.field=submitType_s"
-	
-	found = False
-	while not found : 
-		req = requests.get(url)
-		try : 
-			req = req.json()
-			found = True
-		except : 
-			pass
-
-	return {
-	"notice": req["facet_counts"]["facet_fields"]["submitType_s"][1] + req["facet_counts"]["facet_fields"]["submitType_s"][5],
-	"file" : req["facet_counts"]["facet_fields"]["submitType_s"][3]
-	}
-
-data = {}
-for year in range(2001, 2021) : 
-	for month in range(1,13) : 
-		result = reqHal(str(year), str(month))
-		data[ f"{year}-{month}" ] = [result["notice"], result["file"]]
-		print(f"{year}-{month}\t{result['notice']}\t{result['file']}")
-
-
-df = pd.DataFrame.from_dict(data, orient='index')
-df.index.name = "year-month"
-df.to_csv("evol_depot_cumule.csv", header=[ "notice", "file"])
-```
-**représenter les données**
-```processing
-ArrayList<Month> months = new ArrayList<Month>();
-
-String[] monthname = {"janv", "fév", "mars", "avril", "mai", "juin", "juillet", "août", "sept", "oct", "nov", "déc"};
-IntList values = new IntList();
-int maxRectSize, margin, txtLegendColor;
-
-void setup() {
-  size(800, 500);
-  background(250);
-
-  Table data;
-  data = loadTable("evol_depot_cumule.csv", "header");
-  println("csv last row index", data.lastRowIndex());
-
-  for (TableRow row : data.rows()) {
-    String[] cut = row.getString(0).split("-");
-
-    months.add(new Month(int(cut[0]), int(cut[1]), row.getInt(1), row.getInt(2)));
-    values.append(row.getInt(1)+ row.getInt(2));
-  }
-
-  println("array list", months.size());
-
-  // add month name 
-  for (Month m : months)m.name = monthname[m.monthnb-1];
-
-  // calc rapport file / notice for year
-  FloatList getVals = new FloatList() ; 
-  for (int i = 0; i < months.size(); i++) {
-    Month m = months.get(i);
-    float ctemp = (float)m.file/(m.notice+m.file)*100 ;
-
-    if ( ! m.name.equals("déc")) {   
-      getVals.append( ctemp);
-    }
-    if ( m.name.equals("déc")) {
-      getVals.append( ctemp);
-
-      float temp = getVals.sum() / getVals.size();
-      temp = round(temp);
-      m.rapport = str(int(temp))+" %";
-      getVals.clear();
-      println(m.year, m.rapport);
-    }
-  }
-
-
-
-  //calculer les positions de x
-  margin = 50;
-  int yearSpace = 150;
-
-  int nbOfYears = months.size()/12 ;
-  println(nbOfYears);
-  FloatList xpos = new FloatList() ; 
-  float increm = (float)(width-margin-yearSpace)/(months.size()+nbOfYears);
-
-  for ( int i = 0; i < months.size(); i++) {
-    Month me = months.get(i);
-    if (i == 0) {
-      me.x = margin ;
-      xpos.append(me.x);
-      continue;
-    }
-
-    if (me.monthnb == 1) {
-      me.x = xpos.get(i-1) + increm + yearSpace/nbOfYears ;
-      xpos.append(me.x);
-    }
-
-    if (me.monthnb != 1) {
-      me.x = xpos.get(i-1) + increm ;
-      xpos.append(me.x);
-    }
-  }
-}
-
-void draw() {
-  noLoop();
-  strokeCap(SQUARE);
-  textAlign(CENTER);
-  txtLegendColor = 100;
-  color fileColor = color(#1f618d);
-  color noticeColor = color(#f1c40f);
-  maxRectSize = 400;  
-
-
-  addGlobalLegend(fileColor, noticeColor);
-  addAxLegend(500000, "500k", width*0.3);
-  addAxLegend(1000000, "1M", width*0.3);
-  addAxLegend(2000000, "2M", width*0.3);
-
-
-  strokeWeight(4);
-  // pour tous les mois
-  for ( int i = 0; i < months.size(); i++) {
-    Month me = months.get(i);
-
-    //si premier mois de l'année ajouter l'année
-    if ( me.monthnb == 1) addYearLabel(str(me.year), me.x+ 10);    
-
-
-    float calcy1 = map(me.file, 0, values.max(), 0, maxRectSize);
-    stroke(fileColor);
-    line(me.x, height-margin, me.x, height-margin-calcy1 );
-
-    float calcy2 = map(me.notice, 0, values.max(), 0, maxRectSize);
-    stroke(noticeColor);
-    line(me.x, height-margin-calcy1, me.x, height-margin-calcy1-calcy2 );
-
-    // ajouter le rapport file / notice+file
-    if ( me.monthnb == 12)addRapportLabel(me.rapport, me.x, height-margin-calcy1-calcy2);
-  }
-  
-  save("hal_evol_depo.png");
-}
-
-void addRapportLabel(String s, float x, float y ) {
-  textSize(10);
-  text(s, x-10, y-5);
-}
-void addGlobalLegend(color fileColor, color noticeColor) {
-
-  float xlegend = margin;
-  float ylegend = height*0.35;
-  noStroke();
-  textSize(14);
-
-  fill(noticeColor);
-  rect(xlegend, ylegend, 20, 20);
-  fill(txtLegendColor);
-  text("dépôt sans texte intégral", xlegend + 110, ylegend+15);
-
-  fill(fileColor);
-  rect(xlegend, ylegend+25, 20, 20);
-  fill(txtLegendColor);
-  text("dépôt avec texte intégral", xlegend + 110, ylegend+40);
-
-  textSize(20);
-  fill(0);
-  text("HAL : nombre de dépôts cumulés par années", width/2, margin);
-}
-
-void addYearLabel(String s, float x) {
-  pushMatrix();
-  translate(x, height-margin/2);
-  rotate(-PI/4);
-  textSize(12);
-  text(s, 0, 0 );
-  popMatrix();
-}
-
-void addAxLegend( int l, String legend, float xposText) {
-  float yaxe = map(l, 0, values.max(), 0, maxRectSize);
-  yaxe = height - margin - yaxe;
-
-  strokeWeight(1);
-  stroke(180);
-
-  for (int xpos = margin; xpos < width-margin; xpos+=13) {
-    line(xpos, yaxe, xpos+8, yaxe);
-  }
-
-  fill(txtLegendColor);
-  textSize(12);
-  text(legend, xposText, yaxe-5);
-}
-
-
-
-// a class for Month
-class Month {
-  String name ; 
-  int year, monthnb; 
-  // value for years are added into IntList (implicit index)
-  int notice, file;
-  String rapport ; 
-  float x;
-  Month(int _year, int _monthnb, int _notice, int _file) {
-
-    year = _year;
-    monthnb = _monthnb;
-    notice = _notice ; 
-    file = _file ;
-  }
-}
-```
 
 ## Dépôts effectués par mois
 
-**A savoir**
-
-mars 2018 : versement des thèses de Univ Lorraine
-
-fev. 2019 : versement des rapports HCERES
-
-mai et juin 2020 : versement de prodinra et irstea
+mars 2018 : versement des thèses de Univ. Lorraine <br />
+fev. 2019 : versement des rapports HCERES <br />
+mai et juin 2020 : versement de prodinra et irstea <br />
 
 <br /><br />
 **le CRAC a-t-il impacté le nombre de dépôts en texte intégral ?**
@@ -251,10 +19,8 @@ Mois pris en compte (sont exclus les mois avec des automates) : janv, mars, avri
 
 augmentation moyenne de ~ 19% par mois
 
-aug. pour nov. 2020 : 57 % 
+aug. pour nov. 2020 : 57 % ! 
 
-<br /><br />
-On observe une augmententation des dépôts en plein texte entre 2019 et 2020 d'environ 19 %. Le mois de novembre 2020, avec une augmentation de 57 %, marque le maximum, mois durant lequel le CRAC était actif.
 
 **récupérer les données**
 ```python 
@@ -488,6 +254,233 @@ class Month {
   void update(int y, int _notice, int _file) {
     notice.append(_notice);
     file.append(_file);
+  }
+}
+```
+
+
+
+## Dépôts cumulés par années
+
+**récupérer les données**
+```python
+import requests, json, pandas as pd
+
+def reqHal(year, month):
+	url=f"https://api.archives-ouvertes.fr/search/?&rows=0&fq=submittedDate_tdate:[1500-01-01T00:00:00Z%20TO%20{year}-{month}-01T00:00:00Z]&facet=true&facet.field=submitType_s"
+	
+	found = False
+	while not found : 
+		req = requests.get(url)
+		try : 
+			req = req.json()
+			found = True
+		except : 
+			pass
+
+	return {
+	"notice": req["facet_counts"]["facet_fields"]["submitType_s"][1] + req["facet_counts"]["facet_fields"]["submitType_s"][5],
+	"file" : req["facet_counts"]["facet_fields"]["submitType_s"][3]
+	}
+
+data = {}
+for year in range(2001, 2021) : 
+	for month in range(1,13) : 
+		result = reqHal(str(year), str(month))
+		data[ f"{year}-{month}" ] = [result["notice"], result["file"]]
+		print(f"{year}-{month}\t{result['notice']}\t{result['file']}")
+
+
+df = pd.DataFrame.from_dict(data, orient='index')
+df.index.name = "year-month"
+df.to_csv("evol_depot_cumule.csv", header=[ "notice", "file"])
+```
+**représenter les données**
+```processing
+ArrayList<Month> months = new ArrayList<Month>();
+
+String[] monthname = {"janv", "fév", "mars", "avril", "mai", "juin", "juillet", "août", "sept", "oct", "nov", "déc"};
+IntList values = new IntList();
+int maxRectSize, margin, txtLegendColor;
+
+void setup() {
+  size(800, 500);
+  background(250);
+
+  Table data;
+  data = loadTable("evol_depot_cumule.csv", "header");
+  println("csv last row index", data.lastRowIndex());
+
+  for (TableRow row : data.rows()) {
+    String[] cut = row.getString(0).split("-");
+
+    months.add(new Month(int(cut[0]), int(cut[1]), row.getInt(1), row.getInt(2)));
+    values.append(row.getInt(1)+ row.getInt(2));
+  }
+
+  println("array list", months.size());
+
+  // add month name 
+  for (Month m : months)m.name = monthname[m.monthnb-1];
+
+  // calc rapport file / notice for year
+  FloatList getVals = new FloatList() ; 
+  for (int i = 0; i < months.size(); i++) {
+    Month m = months.get(i);
+    float ctemp = (float)m.file/(m.notice+m.file)*100 ;
+
+    if ( ! m.name.equals("déc")) {   
+      getVals.append( ctemp);
+    }
+    if ( m.name.equals("déc")) {
+      getVals.append( ctemp);
+
+      float temp = getVals.sum() / getVals.size();
+      temp = round(temp);
+      m.rapport = str(int(temp))+" %";
+      getVals.clear();
+      println(m.year, m.rapport);
+    }
+  }
+
+
+
+  //calculer les positions de x
+  margin = 50;
+  int yearSpace = 150;
+
+  int nbOfYears = months.size()/12 ;
+  println(nbOfYears);
+  FloatList xpos = new FloatList() ; 
+  float increm = (float)(width-margin-yearSpace)/(months.size()+nbOfYears);
+
+  for ( int i = 0; i < months.size(); i++) {
+    Month me = months.get(i);
+    if (i == 0) {
+      me.x = margin ;
+      xpos.append(me.x);
+      continue;
+    }
+
+    if (me.monthnb == 1) {
+      me.x = xpos.get(i-1) + increm + yearSpace/nbOfYears ;
+      xpos.append(me.x);
+    }
+
+    if (me.monthnb != 1) {
+      me.x = xpos.get(i-1) + increm ;
+      xpos.append(me.x);
+    }
+  }
+}
+
+void draw() {
+  noLoop();
+  strokeCap(SQUARE);
+  textAlign(CENTER);
+  txtLegendColor = 100;
+  color fileColor = color(#1f618d);
+  color noticeColor = color(#f1c40f);
+  maxRectSize = 400;  
+
+
+  addGlobalLegend(fileColor, noticeColor);
+  addAxLegend(500000, "500k", width*0.3);
+  addAxLegend(1000000, "1M", width*0.3);
+  addAxLegend(2000000, "2M", width*0.3);
+
+
+  strokeWeight(4);
+  // pour tous les mois
+  for ( int i = 0; i < months.size(); i++) {
+    Month me = months.get(i);
+
+    //si premier mois de l'année ajouter l'année
+    if ( me.monthnb == 1) addYearLabel(str(me.year), me.x+ 10);    
+
+
+    float calcy1 = map(me.file, 0, values.max(), 0, maxRectSize);
+    stroke(fileColor);
+    line(me.x, height-margin, me.x, height-margin-calcy1 );
+
+    float calcy2 = map(me.notice, 0, values.max(), 0, maxRectSize);
+    stroke(noticeColor);
+    line(me.x, height-margin-calcy1, me.x, height-margin-calcy1-calcy2 );
+
+    // ajouter le rapport file / notice+file
+    if ( me.monthnb == 12)addRapportLabel(me.rapport, me.x, height-margin-calcy1-calcy2);
+  }
+  
+  save("hal_evol_depo.png");
+}
+
+void addRapportLabel(String s, float x, float y ) {
+  textSize(10);
+  text(s, x-10, y-5);
+}
+void addGlobalLegend(color fileColor, color noticeColor) {
+
+  float xlegend = margin;
+  float ylegend = height*0.35;
+  noStroke();
+  textSize(14);
+
+  fill(noticeColor);
+  rect(xlegend, ylegend, 20, 20);
+  fill(txtLegendColor);
+  text("dépôt sans texte intégral", xlegend + 110, ylegend+15);
+
+  fill(fileColor);
+  rect(xlegend, ylegend+25, 20, 20);
+  fill(txtLegendColor);
+  text("dépôt avec texte intégral", xlegend + 110, ylegend+40);
+
+  textSize(20);
+  fill(0);
+  text("HAL : nombre de dépôts cumulés par années", width/2, margin);
+}
+
+void addYearLabel(String s, float x) {
+  pushMatrix();
+  translate(x, height-margin/2);
+  rotate(-PI/4);
+  textSize(12);
+  text(s, 0, 0 );
+  popMatrix();
+}
+
+void addAxLegend( int l, String legend, float xposText) {
+  float yaxe = map(l, 0, values.max(), 0, maxRectSize);
+  yaxe = height - margin - yaxe;
+
+  strokeWeight(1);
+  stroke(180);
+
+  for (int xpos = margin; xpos < width-margin; xpos+=13) {
+    line(xpos, yaxe, xpos+8, yaxe);
+  }
+
+  fill(txtLegendColor);
+  textSize(12);
+  text(legend, xposText, yaxe-5);
+}
+
+
+
+// a class for Month
+class Month {
+  String name ; 
+  int year, monthnb; 
+  // value for years are added into IntList (implicit index)
+  int notice, file;
+  String rapport ; 
+  float x;
+  Month(int _year, int _monthnb, int _notice, int _file) {
+
+    year = _year;
+    monthnb = _monthnb;
+    notice = _notice ; 
+    file = _file ;
   }
 }
 ```
